@@ -546,15 +546,6 @@ function agendarRecarga() {
 // ---------------------------------------------------------------------
 //  Início
 // ---------------------------------------------------------------------
-// Quem pediu menos animação no sistema vê o vídeo parado
-if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-  const v = document.querySelector(".fundo video");
-  if (v) {
-    v.removeAttribute("autoplay");
-    v.pause();
-  }
-}
-
 (async function iniciar() {
   render();
 
