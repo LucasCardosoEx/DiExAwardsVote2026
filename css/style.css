@@ -110,6 +110,34 @@ button.discord {
   outline-offset: 2px;
 }
 
+/* ---------- Vídeo de fundo ---------- */
+.fundo {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  background: var(--bg);
+}
+.fundo video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0.8;
+}
+/* escurece o vídeo para o texto continuar legível */
+.fundo::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+      90deg,
+      #0b0d12cc 0%,
+      #0b0d1280 45%,
+      #0b0d1240 100%
+    ),
+    linear-gradient(180deg, transparent 50%, #0b0d12 100%);
+}
+
 /* ---------- Topo ---------- */
 .topo {
   display: flex;
@@ -233,9 +261,8 @@ button.discord {
   overflow: hidden;
   border-radius: 14px;
   border: 1px solid var(--line);
-  background: radial-gradient(120% 90% at 85% 10%, #3a2a10 0%, transparent 55%),
-    radial-gradient(90% 80% at 10% 100%, #10233a 0%, transparent 60%),
-    var(--surface);
+  background: linear-gradient(90deg, #141822cc, #14182233);
+  backdrop-filter: blur(2px);
   padding: 40px 28px;
 }
 .hero h1 {

@@ -481,17 +481,15 @@ async function votar(cat, nom) {
 
   const { error } = tirar
     ? await sb.from("votos").delete().eq("user_id", id).eq("categoria", cat)
-    : await sb
-        .from("votos")
-        .upsert(
-          {
-            user_id: id,
-            categoria: cat,
-            indicado: nom,
-            votado_em: new Date().toISOString(),
-          },
-          { onConflict: "user_id,categoria" },
-        );
+    : await sb.from("votos").upsert(
+        {
+          user_id: id,
+          categoria: cat,
+          indicado: nom,
+          votado_em: new Date().toISOString(),
+        },
+        { onConflict: "user_id,categoria" },
+      );
 
   ocupado = false;
   if (error) {
@@ -548,6 +546,15 @@ function agendarRecarga() {
 // ---------------------------------------------------------------------
 //  Início
 // ---------------------------------------------------------------------
+// Quem pediu menos animação no sistema vê o vídeo parado
+if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+  const v = document.querySelector(".fundo video");
+  if (v) {
+    v.removeAttribute("autoplay");
+    v.pause();
+  }
+}
+
 (async function iniciar() {
   render();
 
