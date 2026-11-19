@@ -12,26 +12,46 @@
       content="Votação da comunidade DiEx no estilo The Game Awards."
     />
 
+    <!--
+      Descobre a pasta raiz do site (ex.: /DiExAwardsVote2026/) para que
+      css, js e imagens funcionem também nas páginas /categorias/<nome>.
+      Precisa ficar antes de qualquer <link> ou <script src>.
+    -->
+    <script>
+      (function () {
+        var p = location.pathname;
+        var i = p.indexOf("/categorias/");
+        var base = i >= 0 ? p.slice(0, i + 1) : p.replace(/[^/]*$/, "");
+        document.write('<base href="' + base + '">');
+      })();
+    </script>
+
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link
       rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:opsz,wght@6..96,700;6..96,900&family=Inter:wght@400;500;600&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:opsz,wght@6..96,700;6..96,900&family=Inter:wght@400;500;600;700&display=swap"
     />
     <link rel="stylesheet" href="css/style.css" />
   </head>
   <body>
-    <div class="wrap">
-      <header class="hero">
-        <h1>The Game Awards<br /><em>DiEx Edition</em></h1>
+    <div class="pagina">
+      <header class="topo">
+        <a class="marca" href="./" data-link>DiEx <span>Awards</span></a>
+        <div class="conta" id="me" aria-live="polite">
+          <span class="hint">Carregando…</span>
+        </div>
       </header>
 
-      <section class="me" id="me" aria-live="polite">
-        <span class="hint">Carregando…</span>
-      </section>
+      <nav
+        class="barra"
+        id="barra"
+        aria-label="Navegação entre categorias"
+        hidden
+      ></nav>
 
       <div class="notice" id="aviso" hidden></div>
 
-      <div class="wrap categorias" id="cats"></div>
+      <main id="app"></main>
     </div>
 
     <div class="toast" id="toast" role="status" hidden></div>

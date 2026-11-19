@@ -16,10 +16,13 @@ window.DIEX_CONFIG = {
   // - imagem: caminho da imagem na pasta img. Já vem como "img/<id>.jpg":
   //           é só salvar a imagem com esse nome. Se o arquivo não existir,
   //           o card usa as cores e as iniciais automaticamente.
+  // - slug: o endereço da página da categoria (ex.: .../categorias/jogo-mais-aguardado).
+  //         Sem acento e sem espaço. Se deixar de fora, é gerado a partir do nome.
   // - cor: gradiente usado quando não há imagem.
   categorias: [
     {
       id: "aguardado",
+      slug: "jogo-mais-aguardado",
       nome: "Jogo Mais Aguardado",
       en: "Most Anticipated Game",
       desc: "Premia o título futuro anunciado que gera a maior expectativa entre o público e a crítica.",
@@ -63,6 +66,7 @@ window.DIEX_CONFIG = {
     },
     {
       id: "esports",
+      slug: "melhor-time-de-esports",
       nome: "Melhor Time de Esports",
       en: "Best Esports Team",
       desc: "Reconhece a equipe competitiva com o melhor desempenho e resultados ao longo da temporada.",
