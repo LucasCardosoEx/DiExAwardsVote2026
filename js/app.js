@@ -681,6 +681,7 @@ async function votar(cat, nom) {
   }
   if (ocupado) return;
   ocupado = true;
+  if (CATS.length - totalVotados() <= 2) prepararSom();
 
   const id = meuId();
   const antes = { ...(votos[id] || {}) };
@@ -721,8 +722,29 @@ async function votar(cat, nom) {
 // ---------------------------------------------------------------------
 //  Comemoração: confete + fanfarra + mensagem
 // ---------------------------------------------------------------------
+// Som da comemoração (audio/comemoracao.mp3). Se não tocar, usa a fanfarra.
+let somComemoracao = null;
+function prepararSom() {
+  if (somComemoracao) return;
+  try {
+    somComemoracao = new Audio("audio/comemoracao.mp3");
+    somComemoracao.preload = "auto";
+    somComemoracao.volume = 0.6;
+  } catch {
+    somComemoracao = null;
+  }
+}
+
+function tocarSom() {
+  if (!somComemoracao) prepararSom();
+  if (!somComemoracao) return tocarFanfarra();
+  somComemoracao.currentTime = 0;
+  const p = somComemoracao.play();
+  if (p && p.catch) p.catch(() => tocarFanfarra());
+}
+
 function comemorar() {
-  tocarFanfarra();
+  tocarSom();
   if (!matchMedia("(prefers-reduced-motion: reduce)").matches) soltarConfete();
   mostrarParabens();
 }
