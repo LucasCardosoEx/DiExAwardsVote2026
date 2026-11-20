@@ -23,6 +23,10 @@ let session = null;
 let perfis = {};
 let votos = {};
 let ocupado = false;
+let controle = null; // { votacao_aberta, encerra_em } vindo do Supabase
+let vencedores = {}; // categoria -> indicado
+let souAdmin = false;
+let adminVerificado = false;
 
 // ---------------------------------------------------------------------
 //  Utilidades
@@ -121,12 +125,21 @@ function nickDoDiscord(u) {
   );
 }
 
-// Aberta = ligada no config E antes do prazo
-const PRAZO = CFG.votacaoEncerra ? new Date(CFG.votacaoEncerra) : null;
-function votacaoAberta() {
-  return !!CFG.votacaoAberta && (!PRAZO || Date.now() < PRAZO.getTime());
+// O painel (tabela "controle" no Supabase) manda. Sem ela, vale o config.js.
+function prazo() {
+  if (controle)
+    return controle.encerra_em ? new Date(controle.encerra_em) : null;
+  return CFG.votacaoEncerra ? new Date(CFG.votacaoEncerra) : null;
 }
-function textoPrazo() {
+function ligada() {
+  return controle ? !!controle.votacao_aberta : !!CFG.votacaoAberta;
+}
+function votacaoAberta() {
+  const p = prazo();
+  return ligada() && (!p || Date.now() < p.getTime());
+}
+function textoPrazo(data = prazo()) {
+  const PRAZO = data;
   if (!PRAZO) return "";
   const d = PRAZO.toLocaleDateString("pt-BR", {
     day: "2-digit",
@@ -154,6 +167,7 @@ const totalVotados = () => CATS.filter((c) => meuVoto(c.id)).length;
 //  Rotas: "/" (todas as categorias) e "/categorias/<slug>"
 // ---------------------------------------------------------------------
 const urlHome = () => BASE;
+const urlAdmin = () => BASE + "admin";
 const urlCategoria = (c) => BASE + "categorias/" + c.slug;
 
 function rotaAtual() {
@@ -167,6 +181,7 @@ function rotaAtual() {
   ) {
     return { tipo: "home" };
   }
+  if (rel === "admin" || rel === "admin/") return { tipo: "admin" };
   const m = rel.match(/^categorias\/([^/]+)\/?$/);
   if (m) {
     const slug = decodeURIComponent(m[1]);
@@ -221,6 +236,7 @@ function renderConta() {
     session ? meuId() : "",
     p0 ? p0.nick + p0.avatar : "",
     votacaoAberta(),
+    souAdmin,
   ].join("|");
   if (chave === chaveConta) return;
   chaveConta = chave;
@@ -250,7 +266,10 @@ function renderConta() {
   const sair = el("button", "ghost", "Sair");
   sair.type = "button";
   sair.onclick = () => sb.auth.signOut();
-  box.append(quem, sair);
+  box.append(quem);
+  if (souAdmin)
+    box.append(link(urlAdmin(), "botao ghost painel-link", "Painel"));
+  box.append(sair);
 }
 
 // ---------------------------------------------------------------------
@@ -568,7 +587,7 @@ function renderRodape() {
     const aberta = votacaoAberta();
     st.classList.toggle("ok", aberta);
     st.textContent = aberta
-      ? PRAZO
+      ? prazo()
         ? `Votação aberta até ${textoPrazo()}`
         : "Votação aberta"
       : "Votação encerrada";
@@ -582,7 +601,7 @@ function configurarRodape() {
   const ano = $("#rodape-ano");
   if (ano)
     ano.textContent = String(
-      PRAZO ? PRAZO.getFullYear() : new Date().getFullYear(),
+      prazo() ? prazo().getFullYear() : new Date().getFullYear(),
     );
 
   const a = CFG.autor || {};
@@ -614,10 +633,17 @@ function configurarRodape() {
     };
   }
 
-  // Fecha a votação sozinho quando o prazo chegar com a página aberta
-  if (PRAZO && votacaoAberta()) {
-    const falta = PRAZO.getTime() - Date.now();
-    if (falta < 2 ** 31 - 1) setTimeout(render, falta + 1000);
+  agendarFechamento();
+}
+
+// Fecha a votação sozinho quando o prazo chegar com a página aberta
+let timerPrazo;
+function agendarFechamento() {
+  clearTimeout(timerPrazo);
+  const p = prazo();
+  if (p && votacaoAberta()) {
+    const falta = p.getTime() - Date.now();
+    if (falta < 2 ** 31 - 1) timerPrazo = setTimeout(render, falta + 1000);
   }
 }
 
@@ -636,26 +662,38 @@ function render() {
   const app = $("#app");
   if (!app) return;
 
-  const chave = rota.tipo + (rota.cat ? rota.cat.slug : "");
+  // Painel: só para o admin. Enquanto confere, mostra "Carregando".
+  let tipo = rota.tipo;
+  if (tipo === "admin" && !souAdmin)
+    tipo = adminVerificado ? "naoEncontrada" : "carregando";
+
+  const chave = tipo + (rota.cat ? rota.cat.slug : "");
   if (chave === chaveView) {
-    if (rota.tipo === "home") atualizarHome();
-    else if (rota.tipo === "categoria") atualizarCategoria();
+    if (tipo === "home") atualizarHome();
+    else if (tipo === "categoria") atualizarCategoria();
+    else if (tipo === "admin") atualizarAdmin();
   } else {
     chaveView = chave;
     refs = null;
     app.replaceChildren(
-      rota.tipo === "home"
+      tipo === "home"
         ? viewHome()
-        : rota.tipo === "categoria"
+        : tipo === "categoria"
           ? viewCategoria(rota)
-          : viewNaoEncontrada(),
+          : tipo === "admin"
+            ? viewAdmin()
+            : tipo === "carregando"
+              ? el("p", "hint", "Carregando…")
+              : viewNaoEncontrada(),
     );
   }
 
   document.title =
     rota.tipo === "categoria"
       ? `${rota.cat.nome} · DiEx Awards`
-      : "The Game Awards DiEx Edition";
+      : tipo === "admin"
+        ? "Painel · DiEx Awards"
+        : "The Game Awards DiEx Edition";
 }
 
 // ---------------------------------------------------------------------
@@ -866,7 +904,7 @@ function mostrarParabens() {
     "p",
     null,
     `Você votou nas ${CATS.length} categorias.` +
-      (PRAZO ? ` Dá para mudar qualquer voto até ${textoPrazo()}.` : ""),
+      (prazo() ? ` Dá para mudar qualquer voto até ${textoPrazo()}.` : ""),
   );
 
   const acoes = el("div", "parabens-acoes");
@@ -928,6 +966,36 @@ async function carregar() {
   v.data.forEach((r) => {
     (votos[r.user_id] ||= {})[r.categoria] = r.indicado;
   });
+
+  // Tabelas do painel (admin.sql). Se ainda não existirem, o site segue normal.
+  const [c, w] = await Promise.all([
+    sb
+      .from("controle")
+      .select("votacao_aberta,encerra_em")
+      .eq("id", 1)
+      .maybeSingle(),
+    sb.from("vencedores").select("categoria,indicado"),
+  ]);
+  controle = !c.error && c.data ? c.data : null;
+  vencedores = {};
+  if (!w.error && w.data)
+    w.data.forEach((r) => (vencedores[r.categoria] = r.indicado));
+
+  agendarFechamento();
+  render();
+}
+
+async function verificarAdmin() {
+  souAdmin = false;
+  if (session) {
+    const { data, error } = await sb
+      .from("admins")
+      .select("user_id")
+      .eq("user_id", meuId())
+      .maybeSingle();
+    souAdmin = !error && !!data;
+  }
+  adminVerificado = true;
   render();
 }
 
@@ -937,11 +1005,571 @@ function agendarRecarga() {
   recarga = setTimeout(carregar, 250);
 }
 
+// =====================================================================
+//  PAINEL DO ADMIN (endereço .../admin, só para quem está na tabela admins)
+// =====================================================================
+let abaAdmin = "ranking";
+let usuarioAberto = null;
+
+const corAcerto = (p) => (p < 0.4 ? "verm" : p < 0.7 ? "amar" : "verd");
+const nomeIndicado = (c, id) =>
+  (c.indicados.find((n) => n.id === id) || {}).titulo || "—";
+
+function placarAdmin() {
+  const decididas = CATS.filter((c) => vencedores[c.id]);
+  return Object.keys(perfis)
+    .map((id) => {
+      const v = votos[id] || {};
+      return {
+        id,
+        p: perfis[id],
+        ac: decididas.filter((c) => v[c.id] === vencedores[c.id]).length,
+        tot: decididas.length,
+        votou: CATS.filter((c) => v[c.id]).length,
+      };
+    })
+    .sort(
+      (a, b) =>
+        b.ac - a.ac || b.votou - a.votou || a.p.nick.localeCompare(b.p.nick),
+    );
+}
+
+function viewAdmin() {
+  const sec = el("section", "admin");
+
+  const cab = el("div", "adm-cab");
+  const t = el("div");
+  t.append(
+    el("span", "adm-tag", "Só você vê esta página"),
+    el("h1", null, "Painel do Awards"),
+  );
+  cab.append(t, link(urlHome(), "botao ghost", "← Voltar ao site"));
+
+  const kpis = el("div", "kpis");
+  const ctrl = el("div", "controle-box");
+
+  const abas = el("div", "abas");
+  abas.setAttribute("role", "tablist");
+  const nomes = {
+    ranking: "Ranking",
+    vencedores: "Vencedores",
+    participantes: "Participantes",
+    pendentes: "Quem falta votar",
+  };
+  const paineis = {};
+  for (const [k, rotulo] of Object.entries(nomes)) {
+    const b = el("button", null, rotulo);
+    b.type = "button";
+    b.setAttribute("role", "tab");
+    b.dataset.aba = k;
+    b.onclick = () => {
+      abaAdmin = k;
+      atualizarAdmin();
+    };
+    abas.append(b);
+    paineis[k] = el("div", "painel");
+  }
+
+  sec.append(cab, kpis, ctrl, abas, ...Object.values(paineis));
+  refs = { kpis, ctrl, abas, paineis };
+  atualizarAdmin();
+  return sec;
+}
+
+function atualizarAdmin() {
+  if (!refs || !refs.paineis) return;
+  const { kpis, ctrl, abas, paineis } = refs;
+  const ids = Object.keys(perfis);
+  const comp = ids.filter((id) =>
+    CATS.every((c) => votos[id] && votos[id][c.id]),
+  ).length;
+  const total = ids.reduce(
+    (s, id) => s + CATS.filter((c) => votos[id] && votos[id][c.id]).length,
+    0,
+  );
+  const dec = CATS.filter((c) => vencedores[c.id]).length;
+
+  kpis.replaceChildren(
+    ...[
+      [ids.length, "Participantes"],
+      [`${comp}/${ids.length}`, "Votaram em tudo"],
+      [total, "Votos no total"],
+      [`${dec}/${CATS.length}`, "Vencedores definidos"],
+    ].map(([v, l]) => {
+      const d = el("div", "kpi");
+      d.append(el("b", null, String(v)), el("span", null, l));
+      return d;
+    }),
+  );
+
+  renderControle(ctrl);
+
+  abas
+    .querySelectorAll("button")
+    .forEach((b) =>
+      b.setAttribute("aria-selected", String(b.dataset.aba === abaAdmin)),
+    );
+  for (const [k, p] of Object.entries(paineis)) p.hidden = k !== abaAdmin;
+  ({
+    ranking: painelRanking,
+    vencedores: painelVencedores,
+    participantes: painelParticipantes,
+    pendentes: painelPendentes,
+  })[abaAdmin](paineis[abaAdmin]);
+}
+
+// ---------- Encerrar / reabrir / prazo ----------
+// Brasília não tem horário de verão: -03:00 fixo
+function paraCampoData(d) {
+  return d ? new Date(d.getTime() - 3 * 3600e3).toISOString().slice(0, 16) : "";
+}
+function doCampoData(v) {
+  return v ? new Date(v + ":00-03:00").toISOString() : null;
+}
+
+function renderControle(box) {
+  box.replaceChildren();
+  const p = prazo();
+  const passou = p && Date.now() >= p.getTime();
+  const aberta = votacaoAberta();
+
+  const esq = el("div", "ctrl-status");
+  esq.append(el("span", "adm-rotulo", "Votação"));
+  const st = el(
+    "b",
+    aberta ? "ok" : "fechada",
+    aberta
+      ? p
+        ? `Aberta até ${textoPrazo(p)}`
+        : "Aberta, sem prazo"
+      : !ligada()
+        ? "Encerrada por você"
+        : "Encerrada pelo prazo",
+  );
+  esq.append(st);
+  if (!controle)
+    esq.append(
+      el(
+        "small",
+        "hint",
+        "Rode o admin.sql no Supabase para estes botões funcionarem.",
+      ),
+    );
+
+  const acoes = el("div", "ctrl-acoes");
+  const botao = el("button", aberta ? "perigo" : "botao");
+  botao.type = "button";
+  if (aberta) {
+    botao.textContent = "Encerrar votação agora";
+    botao.onclick = () => {
+      if (
+        confirm(
+          "Encerrar a votação agora? Ninguém vai conseguir votar até você reabrir.",
+        )
+      )
+        salvarControle({ votacao_aberta: false });
+    };
+  } else {
+    botao.textContent = passou ? "Reabrir sem prazo" : "Reabrir votação";
+    botao.onclick = () =>
+      salvarControle(
+        passou
+          ? { votacao_aberta: true, encerra_em: null }
+          : { votacao_aberta: true },
+      );
+  }
+
+  const campo = el("input");
+  campo.type = "datetime-local";
+  campo.id = "campo-prazo";
+  campo.value = paraCampoData(p);
+  const lbl = el("label", "adm-rotulo", "Prazo (Brasília)");
+  lbl.htmlFor = "campo-prazo";
+  const salvar = el("button", "ghost", "Salvar prazo");
+  salvar.type = "button";
+  salvar.onclick = () =>
+    salvarControle({ encerra_em: doCampoData(campo.value) });
+  const sem = el("button", "ghost", "Sem prazo");
+  sem.type = "button";
+  sem.onclick = () => salvarControle({ encerra_em: null });
+
+  const prazoBox = el("div", "ctrl-prazo");
+  prazoBox.append(lbl, campo, salvar, sem);
+  acoes.append(botao);
+  box.append(esq, acoes, prazoBox);
+}
+
+async function salvarControle(mudanca) {
+  const antes = controle;
+  controle = {
+    ...(controle || {
+      votacao_aberta: !!CFG.votacaoAberta,
+      encerra_em: CFG.votacaoEncerra || null,
+    }),
+    ...mudanca,
+  };
+  render();
+  const { error } = await sb.from("controle").update(mudanca).eq("id", 1);
+  if (error) {
+    controle = antes;
+    render();
+    toast("Não deu para salvar. Confira se o admin.sql foi rodado.");
+    console.error(error);
+    return;
+  }
+  agendarFechamento();
+  toast("Salvo.");
+}
+
+// ---------- Abas ----------
+function painelRanking(box) {
+  box.replaceChildren();
+  const dec = CATS.filter((c) => vencedores[c.id]).length;
+  box.append(el("h2", null, "Ranking de acertos"));
+  box.append(
+    el(
+      "p",
+      "sub",
+      dec
+        ? `Contando as ${dec} categorias que já têm vencedor.`
+        : "Defina os vencedores na aba Vencedores para o ranking começar.",
+    ),
+  );
+  const leg = el("div", "legenda");
+  [
+    ["verm", "menos de 40%"],
+    ["amar", "40% a 69%"],
+    ["verd", "70% ou mais"],
+  ].forEach(([c, t]) => {
+    const sp = el("span");
+    sp.append(el("i", c), t);
+    leg.append(sp);
+  });
+  box.append(leg);
+
+  const lista = el("div", "rank");
+  let pos = 0;
+  let ultimo = null;
+  placarAdmin().forEach((r, i) => {
+    if (r.ac !== ultimo) {
+      pos = i + 1;
+      ultimo = r.ac;
+    }
+    const pct = r.tot ? r.ac / r.tot : 0;
+    const linha = el(
+      "div",
+      "rank-linha" + (pos === 1 && r.ac > 0 ? " top1" : ""),
+    );
+    const barra = el("div", "barra-p");
+    const fill = el("i", corAcerto(pct));
+    fill.style.width = (pct * 100).toFixed(1) + "%";
+    barra.append(fill);
+    const pl = el("div", "placar");
+    pl.append(
+      el("b", null, `${r.ac}/${r.tot}`),
+      el("small", null, `${Math.round(pct * 100)}% de acerto`),
+    );
+    linha.append(
+      el("span", "pos", r.tot ? pos + "º" : "–"),
+      avatar(r.p),
+      el("span", "nick", r.p.nick),
+      barra,
+      pl,
+    );
+    lista.append(linha);
+  });
+  if (!lista.children.length)
+    lista.append(el("p", "hint", "Ninguém entrou ainda."));
+  box.append(lista);
+}
+
+function painelVencedores(box) {
+  box.replaceChildren();
+  box.append(el("h2", null, "Definir vencedores"));
+  box.append(
+    el(
+      "p",
+      "sub",
+      "Clique no jogo que ganhou. Clique de novo para desfazer. O ranking atualiza na hora.",
+    ),
+  );
+  const ids = Object.keys(perfis);
+  const lista = el("div", "lista-venc");
+  for (const c of CATS) {
+    const art = el("article", "venc-cat");
+    const h = el("header");
+    h.append(
+      el("b", null, c.nome),
+      el(
+        "span",
+        "estado" + (vencedores[c.id] ? " ok" : ""),
+        vencedores[c.id] ? "Vencedor definido" : "Aguardando",
+      ),
+    );
+    const ops = el("div", "opcoes");
+    for (const n of c.indicados) {
+      const q = ids.filter(
+        (id) => votos[id] && votos[id][c.id] === n.id,
+      ).length;
+      const ehV = vencedores[c.id] === n.id;
+      const b = el("button", "op" + (ehV ? " venc" : ""));
+      b.type = "button";
+      const im = el("img");
+      im.alt = "";
+      im.loading = "lazy";
+      const tent = tentativasImagem(n);
+      im.onerror = () =>
+        tent.length
+          ? (im.src = tent.shift())
+          : im.replaceWith(el("span", "ph"));
+      im.src = tent.shift();
+      const tx = el("span", "t");
+      tx.append(
+        el("b", null, n.titulo),
+        el(
+          "small",
+          null,
+          ehV ? "Vencedor" : `${q} ${q === 1 ? "voto" : "votos"}`,
+        ),
+      );
+      b.append(im, tx);
+      b.onclick = () => definirVencedor(c.id, n.id);
+      ops.append(b);
+    }
+    art.append(h, ops);
+    if (vencedores[c.id]) {
+      const f = el("footer");
+      const acertou = ids.filter(
+        (id) => votos[id] && votos[id][c.id] === vencedores[c.id],
+      );
+      f.append(
+        el("span", null, acertou.length ? "Acertaram:" : "Ninguém acertou"),
+      );
+      acertou.forEach((id) => f.append(avatar(perfis[id])));
+      art.append(f);
+    }
+    lista.append(art);
+  }
+  box.append(lista);
+}
+
+async function definirVencedor(cat, nom) {
+  const antes = vencedores[cat];
+  const tirar = antes === nom;
+  if (tirar) delete vencedores[cat];
+  else vencedores[cat] = nom;
+  render();
+  const { error } = tirar
+    ? await sb.from("vencedores").delete().eq("categoria", cat)
+    : await sb.from("vencedores").upsert(
+        {
+          categoria: cat,
+          indicado: nom,
+          definido_em: new Date().toISOString(),
+        },
+        { onConflict: "categoria" },
+      );
+  if (error) {
+    if (antes) vencedores[cat] = antes;
+    else delete vencedores[cat];
+    render();
+    toast("Não deu para salvar o vencedor. Confira se o admin.sql foi rodado.");
+    console.error(error);
+  }
+}
+
+function painelParticipantes(box) {
+  box.replaceChildren();
+  box.append(el("h2", null, "Participantes"));
+  box.append(el("p", "sub", "Clique em um nome para ver os votos dele."));
+  const wrap = el("div", "tabela-wrap");
+  const t = el("table", "tabela");
+  t.innerHTML =
+    "<thead><tr><th>Usuário</th><th>Progresso</th><th>Acertos</th><th>Situação</th></tr></thead>";
+  const tb = el("tbody");
+  const P = Object.fromEntries(placarAdmin().map((r) => [r.id, r]));
+  const ids = Object.keys(perfis).sort((a, b) =>
+    perfis[a].nick.localeCompare(perfis[b].nick),
+  );
+  for (const id of ids) {
+    const r = P[id];
+    const tr = el("tr", "clicavel");
+    tr.tabIndex = 0;
+    const q = el("td");
+    const qq = el("div", "quem2");
+    qq.append(avatar(perfis[id]), el("span", null, perfis[id].nick));
+    q.append(qq);
+    const pr = el("td");
+    const m = el("div", "mini");
+    const b = el("div", "barra-p");
+    const f = el("i", corAcerto(r.votou / CATS.length));
+    f.style.width = (r.votou / CATS.length) * 100 + "%";
+    b.append(f);
+    m.append(b, el("span", null, `${r.votou}/${CATS.length}`));
+    pr.append(m);
+    const st = el("td");
+    st.append(
+      r.votou === CATS.length
+        ? el("span", "pill verde", "Completo")
+        : el("span", "pill falta", `Faltam ${CATS.length - r.votou}`),
+    );
+    tr.append(q, pr, el("td", null, r.tot ? `${r.ac}/${r.tot}` : "—"), st);
+    const abrir = () => {
+      usuarioAberto = usuarioAberto === id ? null : id;
+      painelParticipantes(box);
+    };
+    tr.onclick = abrir;
+    tr.onkeydown = (e) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        abrir();
+      }
+    };
+    tb.append(tr);
+    if (usuarioAberto === id) {
+      const d = el("tr", "det");
+      const td = el("td");
+      td.colSpan = 4;
+      const g = el("div", "votos-user");
+      for (const c of CATS) {
+        const v = votos[id] && votos[id][c.id];
+        const row = el("div");
+        const cls = !v
+          ? "n"
+          : !vencedores[c.id]
+            ? ""
+            : v === vencedores[c.id]
+              ? "c"
+              : "e";
+        row.append(
+          el("span", null, c.nome),
+          el(
+            "span",
+            cls,
+            v
+              ? nomeIndicado(c, v) +
+                  (cls === "c" ? " ✓" : cls === "e" ? " ✗" : "")
+              : "não votou",
+          ),
+        );
+        g.append(row);
+      }
+      td.append(g);
+      d.append(td);
+      tb.append(d);
+    }
+  }
+  t.append(tb);
+  wrap.append(t);
+  box.append(wrap);
+}
+
+function painelPendentes(box) {
+  box.replaceChildren();
+  box.append(el("h2", null, "Quem falta votar"));
+  const ids = Object.keys(perfis);
+  const g = el("div", "pend-cats");
+  for (const c of CATS) {
+    const falta = ids.filter((id) => !(votos[id] && votos[id][c.id]));
+    const b = el("article", "pend-cat");
+    const h = el("header");
+    h.append(
+      el("b", null, c.nome),
+      el(
+        "span",
+        falta.length ? "pill falta" : "pill verde",
+        falta.length ? `${falta.length} faltando` : "Todos votaram",
+      ),
+    );
+    b.append(h);
+    if (falta.length) {
+      const l = el("div", "list");
+      falta.forEach((id) => l.append(avatar(perfis[id])));
+      b.append(l);
+    }
+    g.append(b);
+  }
+  box.append(g);
+}
+
+// =====================================================================
+//  EASTER EGG: um ícone pequeno atravessa a tela de vez em quando.
+//  Quem clicar ouve a intro da Valve.
+// =====================================================================
+const ICONE_EASTER =
+  '<svg viewBox="0 0 40 40" width="34" height="34" aria-hidden="true"><rect x="2" y="2" width="36" height="36" rx="9" fill="#f47a20"/><rect x="2" y="2" width="36" height="36" rx="9" fill="none" stroke="#000" stroke-opacity=".35" stroke-width="2"/><text x="17" y="29" text-anchor="middle" font-family="Georgia,serif" font-weight="700" font-size="24" fill="#1a1205">λ</text><text x="30" y="17" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-weight="800" font-size="12" fill="#1a1205">3</text></svg>';
+
+function iniciarEasterEgg() {
+  if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  const proxima = (min, max) =>
+    setTimeout(soltarEasterEgg, (min + Math.random() * (max - min)) * 1000);
+  // primeira vez entre 40 s e 2 min; depois a cada 2 a 5 min
+  proxima(40, 120);
+  soltarEasterEgg.depois = () => proxima(120, 300);
+}
+
+function soltarEasterEgg() {
+  const reagendar = () => soltarEasterEgg.depois && soltarEasterEgg.depois();
+  if (document.hidden || document.querySelector(".parabens, .easter"))
+    return reagendar();
+
+  const b = el("button", "easter");
+  b.type = "button";
+  b.setAttribute("aria-label", "Segredo");
+  b.innerHTML = ICONE_EASTER;
+  document.body.append(b);
+
+  const W = innerWidth;
+  const H = innerHeight;
+  const daEsquerda = Math.random() < 0.5;
+  const x0 = daEsquerda ? -50 : W + 50;
+  const x1 = daEsquerda ? W + 50 : -50;
+  const y0 = H * (0.15 + Math.random() * 0.6);
+  const y1 = H * (0.15 + Math.random() * 0.6);
+  const onda = 30 + Math.random() * 60;
+  const dur = 7000 + Math.random() * 4000;
+  const giro = (Math.random() < 0.5 ? -1 : 1) * (360 + Math.random() * 360);
+  const ini = performance.now();
+  let ativo = true;
+
+  function quadro(agora) {
+    if (!ativo) return;
+    const t = Math.min(1, (agora - ini) / dur);
+    const x = x0 + (x1 - x0) * t;
+    const y = y0 + (y1 - y0) * t + Math.sin(t * Math.PI * 4) * onda;
+    b.style.transform = `translate(${x}px, ${y}px) rotate(${(giro * (agora - ini)) / 1000}deg)`;
+    if (t < 1) requestAnimationFrame(quadro);
+    else {
+      b.remove();
+      reagendar();
+    }
+  }
+  requestAnimationFrame(quadro);
+
+  b.onclick = () => {
+    if (!ativo) return;
+    ativo = false;
+    try {
+      const a = new Audio("audio/valve.mp3");
+      a.volume = 0.7;
+      a.play().catch(() => {});
+    } catch {
+      /* sem som */
+    }
+    b.classList.add("pego");
+    setTimeout(() => {
+      b.remove();
+      reagendar();
+    }, 900);
+  };
+}
+
 // ---------------------------------------------------------------------
 //  Início
 // ---------------------------------------------------------------------
 (async function iniciar() {
   configurarRodape();
+  iniciarEasterEgg();
   render();
 
   const configurado =
@@ -965,11 +1593,13 @@ function agendarRecarga() {
   session = data.session;
   if (session) await salvarPerfil();
   render();
+  verificarAdmin();
 
   sb.auth.onAuthStateChange(async (_evento, s) => {
     const mudou = (s && s.user.id) !== meuId();
     session = s;
     if (s && mudou) await salvarPerfil();
+    if (mudou) verificarAdmin();
     render();
   });
 
@@ -984,6 +1614,16 @@ function agendarRecarga() {
     .on(
       "postgres_changes",
       { event: "*", schema: "public", table: "perfis" },
+      agendarRecarga,
+    )
+    .on(
+      "postgres_changes",
+      { event: "*", schema: "public", table: "controle" },
+      agendarRecarga,
+    )
+    .on(
+      "postgres_changes",
+      { event: "*", schema: "public", table: "vencedores" },
       agendarRecarga,
     )
     .subscribe();
