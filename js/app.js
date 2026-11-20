@@ -121,6 +121,28 @@ function nickDoDiscord(u) {
   );
 }
 
+// Aberta = ligada no config E antes do prazo
+const PRAZO = CFG.votacaoEncerra ? new Date(CFG.votacaoEncerra) : null;
+function votacaoAberta() {
+  return !!CFG.votacaoAberta && (!PRAZO || Date.now() < PRAZO.getTime());
+}
+function textoPrazo() {
+  if (!PRAZO) return "";
+  const d = PRAZO.toLocaleDateString("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
+    timeZone: "America/Sao_Paulo",
+  });
+  const h = PRAZO.toLocaleTimeString("pt-BR", {
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: "America/Sao_Paulo",
+  })
+    .replace(":00", "h")
+    .replace(":", "h");
+  return `${d} às ${h}`;
+}
+
 const meuId = () => session && session.user.id;
 const meuVoto = (catId) => {
   const id = meuId();
@@ -196,7 +218,7 @@ function renderConta() {
   if (!sb) return;
 
   if (!session) {
-    if (!CFG.votacaoAberta) {
+    if (!votacaoAberta()) {
       box.append(el("span", "hint", "Votação encerrada"));
       return;
     }
@@ -379,7 +401,7 @@ function cardIndicado(c, n, ids) {
 
   const b = el("button", "nom" + (meu ? " mine" : ""));
   b.type = "button";
-  b.disabled = !CFG.votacaoAberta;
+  b.disabled = !votacaoAberta();
   b.setAttribute(
     "aria-label",
     `${n.titulo}, ${n.sub || ""}. ${quem.length} voto(s).${meu ? " Seu voto." : ""}`,
@@ -434,12 +456,75 @@ function viewNaoEncontrada() {
 }
 
 // ---------------------------------------------------------------------
+//  Rodapé
+// ---------------------------------------------------------------------
+function renderRodape() {
+  const st = $("#status-votacao");
+  if (st) {
+    const aberta = votacaoAberta();
+    st.classList.toggle("ok", aberta);
+    st.textContent = aberta
+      ? PRAZO
+        ? `Votação aberta até ${textoPrazo()}`
+        : "Votação aberta"
+      : "Votação encerrada";
+  }
+  const ev = $("#rodape-evento");
+  if (ev && CFG.evento)
+    ev.textContent = `${CFG.evento.nome}: ${CFG.evento.data}`;
+}
+
+function configurarRodape() {
+  const ano = $("#rodape-ano");
+  if (ano)
+    ano.textContent = String(
+      PRAZO ? PRAZO.getFullYear() : new Date().getFullYear(),
+    );
+
+  const a = CFG.autor || {};
+  const gh = $("#link-github");
+  if (gh && a.github) gh.href = a.github;
+  const repo = $("#link-repo");
+  if (repo && a.repositorio) repo.href = a.repositorio;
+  const tga = $("#link-tga");
+  if (tga && CFG.evento && CFG.evento.site) tga.href = CFG.evento.site;
+
+  const copiar = $("#copiar-discord");
+  if (copiar) {
+    copiar.onclick = async () => {
+      const nome = a.nome || "ArthasEx";
+      try {
+        await navigator.clipboard.writeText(nome);
+        toast(`"${nome}" copiado. É só procurar no Discord.`);
+      } catch {
+        const alvo = $("#nome-discord");
+        if (alvo) {
+          const r = document.createRange();
+          r.selectNodeContents(alvo);
+          const sel = getSelection();
+          sel.removeAllRanges();
+          sel.addRange(r);
+        }
+        toast("Selecionei o nome. Use Ctrl+C para copiar.");
+      }
+    };
+  }
+
+  // Fecha a votação sozinho quando o prazo chegar com a página aberta
+  if (PRAZO && votacaoAberta()) {
+    const falta = PRAZO.getTime() - Date.now();
+    if (falta < 2 ** 31 - 1) setTimeout(render, falta + 1000);
+  }
+}
+
+// ---------------------------------------------------------------------
 //  Render geral
 // ---------------------------------------------------------------------
 function render() {
   const rota = rotaAtual();
   renderConta();
   renderBarra(rota);
+  renderRodape();
 
   const app = $("#app");
   if (!app) return;
@@ -471,7 +556,7 @@ async function entrar() {
 }
 
 async function votar(cat, nom) {
-  if (!CFG.votacaoAberta) return;
+  if (!votacaoAberta()) return;
   if (!session) {
     toast("Entre com o Discord para votar.");
     const b = $("#me button");
@@ -559,6 +644,7 @@ function agendarRecarga() {
 //  Início
 // ---------------------------------------------------------------------
 (async function iniciar() {
+  configurarRodape();
   render();
 
   const configurado =

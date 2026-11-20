@@ -602,6 +602,119 @@ button.discord {
   padding-top: 24px;
 }
 
+/* ---------- Rodapé ---------- */
+.rodape {
+  margin-top: 32px;
+  padding-top: 28px;
+  border-top: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  font-size: 14px;
+  color: var(--muted);
+}
+.rodape-cols {
+  display: grid;
+  grid-template-columns: 1.3fr 1fr 1fr;
+  gap: 32px;
+}
+.rodape section {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  min-width: 0;
+}
+.rodape p {
+  margin: 0;
+  max-width: 48ch;
+}
+.rodape h2 {
+  margin: 0 0 4px;
+  color: var(--fg);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+.rodape a {
+  color: var(--fg);
+  text-underline-offset: 3px;
+}
+.rodape a:hover {
+  color: var(--gold);
+}
+.rodape .marca small {
+  font-family: var(--body);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+}
+.rodape-sobre p:first-of-type {
+  color: var(--fg);
+}
+.rodape-link {
+  font-weight: 600;
+  text-decoration: none;
+}
+.autor {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.autor b {
+  color: var(--fg);
+}
+.icone {
+  display: inline-grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 1px solid var(--line);
+}
+.icone:hover {
+  border-color: var(--gold);
+}
+.discord-tag {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 6px 6px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--fg);
+}
+.discord-tag svg {
+  color: var(--discord);
+}
+.discord-tag span {
+  font-weight: 600;
+  user-select: all;
+}
+.discord-tag button {
+  padding: 6px 12px;
+  font-size: 13px;
+}
+.rodape-legal {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+  font-size: 12px;
+}
+.rodape-legal p {
+  max-width: none;
+}
+@media (max-width: 860px) {
+  .rodape-cols {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+}
+
 /* ---------- Celular ---------- */
 @media (max-width: 720px) {
   .hero {
