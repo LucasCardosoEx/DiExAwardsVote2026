@@ -61,7 +61,8 @@ a {
 }
 
 .pagina {
-  max-width: 1100px;
+  /* acompanha a largura do monitor, sem esticar demais em telas ultrawide */
+  max-width: min(1600px, 94vw);
   margin: 0 auto;
   display: flex;
   flex-direction: column;
@@ -132,7 +133,20 @@ button.discord {
 .conta {
   display: flex;
   align-items: center;
-  gap: 12px;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  min-width: 0;
+}
+@media (max-width: 480px) {
+  .conta .quem b {
+    display: none;
+  }
+  .conta .botao,
+  .conta button {
+    padding: 7px 11px;
+    font-size: 14px;
+  }
 }
 .conta .quem {
   display: flex;
@@ -238,7 +252,7 @@ button.discord {
   position: relative;
   overflow: hidden;
   aspect-ratio: 2 / 1;
-  max-height: 560px;
+  max-height: min(680px, 62vh);
   width: 100%;
   display: flex;
   align-items: center;
@@ -254,7 +268,7 @@ button.discord {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  object-position: left center;
+  object-position: left 30%;
 }
 /* escurece só o lado direito, onde fica o título */
 .hero::after {
@@ -1397,6 +1411,150 @@ button.perigo {
   .easter-card {
     animation: none;
   }
+}
+
+/* ---------- Faixa de votação encerrada ---------- */
+.faixa {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  margin-inline: calc(-1 * max(16px, env(safe-area-inset-left, 0px)));
+  margin-top: -16px;
+  margin-bottom: 16px;
+  padding: 10px 16px;
+  background: #c93c37;
+  color: #fff;
+  font-weight: 700;
+  font-size: 14px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  text-align: center;
+}
+.faixa a {
+  color: #fff;
+  text-underline-offset: 3px;
+  letter-spacing: 0.02em;
+  text-transform: none;
+  font-size: 15px;
+}
+
+/* ---------- Vencedor nas categorias ---------- */
+.nom.vencedor {
+  border-color: #3fb950;
+  box-shadow:
+    0 0 0 2px #3fb950,
+    0 10px 34px -10px #3fb950;
+}
+.nom.perdeu .art {
+  filter: grayscale(0.7) brightness(0.7);
+}
+.badge-vencedor {
+  position: absolute;
+  z-index: 1;
+  left: 8px;
+  bottom: 8px;
+  background: #3fb950;
+  color: #06210d;
+  border-radius: 99px;
+  padding: 3px 10px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+}
+.nom.vencedor .votes {
+  margin-bottom: 26px;
+}
+
+/* ---------- Página de resultados ---------- */
+.resultados {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+.rank-linha.eu {
+  outline: 2px solid var(--discord);
+  outline-offset: -2px;
+}
+.res-grade {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 12px;
+}
+.res-cat {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+}
+.res-cat.ok {
+  border-color: #3fb95066;
+}
+.res-nome {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.res-venc {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.res-venc img,
+.res-venc .ph {
+  flex: none;
+  width: 64px;
+  height: 64px;
+  border-radius: 10px;
+  object-fit: cover;
+  background: var(--line);
+  box-shadow: 0 0 0 2px #3fb950;
+}
+.res-venc div {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.res-venc small {
+  color: #3fb950;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.res-venc b {
+  font-size: 16px;
+}
+.res-rod {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.res-rod .list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.res-meu {
+  font-size: 13px;
+  font-weight: 600;
+}
+.res-meu.c {
+  color: #3fb950;
+}
+.res-meu.e {
+  color: #ff7b72;
+}
+.res-espera {
+  color: var(--muted);
+  font-style: italic;
 }
 
 /* ---------- Celular ---------- */

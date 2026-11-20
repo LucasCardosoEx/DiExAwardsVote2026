@@ -10,6 +10,9 @@
 --   - vencedores: o vencedor de cada categoria
 --  E troca as regras dos votos para respeitar o "controle".
 --  Se você rodou o prazo.sql antes, este script substitui ele.
+--
+--  Pode rodar de novo sempre que eu mandar uma versão nova:
+--  não apaga votos, vencedores nem o estado da votação.
 -- =====================================================================
 
 -- ---------- Tabelas ----------
@@ -62,7 +65,9 @@ drop policy if exists "admin tira vencedor"  on public.vencedores;
 create policy "ve se e admin"       on public.admins     for select to authenticated using (auth.uid() = user_id);
 create policy "controle visivel"    on public.controle   for select using (true);
 create policy "admin muda controle" on public.controle   for update to authenticated using (public.eh_admin()) with check (public.eh_admin());
-create policy "vencedores visiveis" on public.vencedores for select using (true);
+-- vencedores só aparecem para todos depois que a votação encerra (o admin vê sempre)
+create policy "vencedores visiveis" on public.vencedores for select
+  using (public.eh_admin() or not public.votacao_liberada());
 create policy "admin cria vencedor" on public.vencedores for insert to authenticated with check (public.eh_admin());
 create policy "admin muda vencedor" on public.vencedores for update to authenticated using (public.eh_admin()) with check (public.eh_admin());
 create policy "admin tira vencedor" on public.vencedores for delete to authenticated using (public.eh_admin());

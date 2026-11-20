@@ -168,6 +168,7 @@ const totalVotados = () => CATS.filter((c) => meuVoto(c.id)).length;
 // ---------------------------------------------------------------------
 const urlHome = () => BASE;
 const urlAdmin = () => BASE + "admin";
+const urlResultados = () => BASE + "resultados";
 const urlCategoria = (c) => BASE + "categorias/" + c.slug;
 
 function rotaAtual() {
@@ -182,6 +183,8 @@ function rotaAtual() {
     return { tipo: "home" };
   }
   if (rel === "admin" || rel === "admin/") return { tipo: "admin" };
+  if (rel === "resultados" || rel === "resultados/")
+    return { tipo: "resultados" };
   const m = rel.match(/^categorias\/([^/]+)\/?$/);
   if (m) {
     const slug = decodeURIComponent(m[1]);
@@ -267,6 +270,8 @@ function renderConta() {
   sair.type = "button";
   sair.onclick = () => sb.auth.signOut();
   box.append(quem);
+  if (!votacaoAberta())
+    box.append(link(urlResultados(), "botao ghost painel-link", "Resultados"));
   if (souAdmin)
     box.append(link(urlAdmin(), "botao ghost painel-link", "Painel"));
   box.append(sair);
@@ -396,7 +401,9 @@ function atualizarHome() {
     const qtd = ids.filter((id) => votos[id] && votos[id][c.id]).length;
     const v = session ? meuVoto(c.id) : null;
     const nom = v && c.indicados.find((n) => n.id === v);
-    const chave = `${qtd}|${session ? (nom ? nom.id : "-") : ""}`;
+    const venc =
+      vencedores[c.id] && c.indicados.find((n) => n.id === vencedores[c.id]);
+    const chave = `${qtd}|${session ? (nom ? nom.id : "-") : ""}|${venc ? venc.id : ""}`;
     const rod = rodapes[c.id];
     if (rod.dataset.k === chave) continue;
     rod.dataset.k = chave;
@@ -410,6 +417,7 @@ function atualizarHome() {
           : el("span", "pill", "Falta votar"),
       );
     }
+    if (venc) rod.append(el("span", "pill verde", "Vencedor: " + venc.titulo));
   }
 }
 
@@ -471,6 +479,11 @@ function atualizarCategoria() {
     r.count.hidden = !quem.length;
     r.count.textContent = String(quem.length);
     r.badge.hidden = !ehMeu;
+    // Vencedor definido no painel: destaque na hora
+    const ganhou = vencedores[c.id] === n.id;
+    r.b.classList.toggle("vencedor", ganhou);
+    r.b.classList.toggle("perdeu", !!vencedores[c.id] && !ganhou);
+    r.trofeu.hidden = !ganhou;
   }
 
   const falta = ids.filter((id) => !(votos[id] && votos[id][c.id]));
@@ -557,15 +570,16 @@ function cardIndicado(c, n) {
   const vs = el("div", "votes");
   const count = el("span", "count");
   const badge = el("span", "badge", "SEU VOTO");
-  count.hidden = badge.hidden = true;
-  art.append(vs, count, badge);
+  const trofeu = el("span", "badge-vencedor", "VENCEDOR");
+  count.hidden = badge.hidden = trofeu.hidden = true;
+  art.append(vs, count, badge, trofeu);
 
   const info = el("div", "info");
   info.append(el("b", null, n.titulo), el("span", null, n.sub || ""));
 
   b.append(art, info);
   b.onclick = () => votar(c.id, n.id);
-  return { b, vs, count, badge };
+  return { b, vs, count, badge, trofeu };
 }
 
 function viewNaoEncontrada() {
@@ -658,6 +672,7 @@ function render() {
   renderConta();
   renderBarra(rota);
   renderRodape();
+  renderFaixa();
 
   const app = $("#app");
   if (!app) return;
@@ -667,11 +682,15 @@ function render() {
   if (tipo === "admin" && !souAdmin)
     tipo = adminVerificado ? "naoEncontrada" : "carregando";
 
-  const chave = tipo + (rota.cat ? rota.cat.slug : "");
+  const chave =
+    tipo +
+    (rota.cat ? rota.cat.slug : "") +
+    (votacaoAberta() ? "" : "|fechada");
   if (chave === chaveView) {
     if (tipo === "home") atualizarHome();
     else if (tipo === "categoria") atualizarCategoria();
     else if (tipo === "admin") atualizarAdmin();
+    else if (tipo === "resultados") atualizarResultados();
   } else {
     chaveView = chave;
     refs = null;
@@ -682,9 +701,11 @@ function render() {
           ? viewCategoria(rota)
           : tipo === "admin"
             ? viewAdmin()
-            : tipo === "carregando"
-              ? el("p", "hint", "Carregando…")
-              : viewNaoEncontrada(),
+            : tipo === "resultados"
+              ? viewResultados()
+              : tipo === "carregando"
+                ? el("p", "hint", "Carregando…")
+                : viewNaoEncontrada(),
     );
   }
 
@@ -693,7 +714,9 @@ function render() {
       ? `${rota.cat.nome} · DiEx Awards`
       : tipo === "admin"
         ? "Painel · DiEx Awards"
-        : "The Game Awards DiEx Edition";
+        : tipo === "resultados"
+          ? "Resultados · DiEx Awards"
+          : "The Game Awards DiEx Edition";
 }
 
 // ---------------------------------------------------------------------
@@ -1222,7 +1245,7 @@ async function salvarControle(mudanca) {
 }
 
 // ---------- Abas ----------
-function painelRanking(box) {
+function painelRanking(box, publico = false) {
   box.replaceChildren();
   const dec = CATS.filter((c) => vencedores[c.id]).length;
   box.append(el("h2", null, "Ranking de acertos"));
@@ -1232,7 +1255,9 @@ function painelRanking(box) {
       "sub",
       dec
         ? `Contando as ${dec} categorias que já têm vencedor.`
-        : "Defina os vencedores na aba Vencedores para o ranking começar.",
+        : publico
+          ? "O ranking começa assim que os vencedores forem anunciados."
+          : "Defina os vencedores na aba Vencedores para o ranking começar.",
     ),
   );
   const leg = el("div", "legenda");
@@ -1258,7 +1283,9 @@ function painelRanking(box) {
     const pct = r.tot ? r.ac / r.tot : 0;
     const linha = el(
       "div",
-      "rank-linha" + (pos === 1 && r.ac > 0 ? " top1" : ""),
+      "rank-linha" +
+        (pos === 1 && r.ac > 0 ? " top1" : "") +
+        (r.id === meuId() ? " eu" : ""),
     );
     const barra = el("div", "barra-p");
     const fill = el("i", corAcerto(pct));
@@ -1635,6 +1662,128 @@ function mostrarEasterPopup(som) {
   });
   document.addEventListener("keydown", esc);
   fechar.focus();
+}
+
+// =====================================================================
+//  FAIXA VERMELHA (aparece em todo o site quando a votação encerra)
+// =====================================================================
+function renderFaixa() {
+  const f = $("#faixa-encerrada");
+  if (!f) return;
+  const fechada = !!sb && !votacaoAberta();
+  f.hidden = !fechada;
+  if (fechada && !f.childElementCount) {
+    const t = el("span", null, "Votações encerradas");
+    f.append(t, link(urlResultados(), null, "Ver resultado →"));
+  }
+}
+
+// =====================================================================
+//  RESULTADOS (abre para todos só depois que a votação encerra)
+// =====================================================================
+function viewResultados() {
+  const sec = el("section", "resultados");
+  if (votacaoAberta()) {
+    sec.append(el("h1", "cat-titulo", "Resultados"));
+    const p = prazo();
+    sec.append(
+      el(
+        "p",
+        "cat-desc",
+        "O ranking e os vencedores aparecem aqui assim que a votação encerrar" +
+          (p ? `, em ${textoPrazo(p)}.` : "."),
+      ),
+    );
+    sec.append(link(urlHome(), "botao", "Ir votar"));
+    return sec;
+  }
+  const cab = el("header", "cat-cab");
+  cab.append(
+    el("span", "eyebrow", "The Game Awards 2026 · DiEx Edition"),
+    el("h1", "cat-titulo", "Resultados"),
+  );
+  const resumo = el("p", "cat-desc");
+  cab.append(resumo);
+  const ranking = el("div", "painel");
+  const venc = el("div", "painel");
+  sec.append(cab, ranking, venc);
+  refs = { resumo, ranking, venc };
+  atualizarResultados();
+  return sec;
+}
+
+function atualizarResultados() {
+  if (!refs || !refs.venc) return;
+  const { resumo, ranking, venc } = refs;
+  const dec = CATS.filter((c) => vencedores[c.id]);
+  const eu = meuId();
+  const meus = eu
+    ? dec.filter((c) => votos[eu] && votos[eu][c.id] === vencedores[c.id])
+        .length
+    : 0;
+  resumo.textContent = !dec.length
+    ? "A votação encerrou. Os vencedores vão aparecendo aqui durante o evento, em tempo real."
+    : `${dec.length} de ${CATS.length} vencedores anunciados.` +
+      (eu ? ` Você acertou ${meus}.` : "");
+
+  painelRanking(ranking, true);
+
+  venc.replaceChildren(el("h2", null, "Vencedores"));
+  const ids = Object.keys(perfis);
+  const grade = el("div", "res-grade");
+  for (const c of CATS) {
+    const vId = vencedores[c.id];
+    const n = vId && c.indicados.find((x) => x.id === vId);
+    const card = el("article", "res-cat" + (n ? " ok" : ""));
+    card.append(el("span", "res-nome", c.nome));
+    if (n) {
+      const linha = el("div", "res-venc");
+      const im = el("img");
+      im.alt = "";
+      im.loading = "lazy";
+      const tent = tentativasImagem(n);
+      im.onerror = () =>
+        tent.length
+          ? (im.src = tent.shift())
+          : im.replaceWith(el("span", "ph"));
+      im.src = tent.shift();
+      const tx = el("div");
+      tx.append(
+        el("small", null, "Vencedor"),
+        el("b", null, n.titulo),
+        el("span", "hint", n.sub || ""),
+      );
+      linha.append(im, tx);
+      card.append(linha);
+      const acertou = ids.filter((id) => votos[id] && votos[id][c.id] === vId);
+      const rod = el("div", "res-rod");
+      rod.append(
+        el(
+          "span",
+          "hint",
+          acertou.length ? `${acertou.length} acertaram` : "Ninguém acertou",
+        ),
+      );
+      const av = el("div", "list");
+      acertou.forEach((id) => av.append(avatar(perfis[id])));
+      rod.append(av);
+      card.append(rod);
+      if (eu && votos[eu] && votos[eu][c.id]) {
+        const certo = votos[eu][c.id] === vId;
+        card.append(
+          el(
+            "span",
+            "res-meu " + (certo ? "c" : "e"),
+            `Seu voto: ${nomeIndicado(c, votos[eu][c.id])} ${certo ? "✓" : "✗"}`,
+          ),
+        );
+      }
+    } else {
+      card.append(el("span", "res-espera", "Aguardando o anúncio"));
+    }
+    grade.append(card);
+  }
+  venc.append(grade);
 }
 
 // ---------------------------------------------------------------------
