@@ -1616,7 +1616,7 @@ function mostrarEasterPopup(som) {
   card.append(
     fechar,
     img,
-    el("p", null, "Você achou o segredo. Half-Life 3 confirmado (algum dia)."),
+    el("p", null, "HL3 Confirmed! Agora ArthasEx é oficialmente de Jorge."),
   );
   fundo.append(card);
   document.body.append(fundo);
