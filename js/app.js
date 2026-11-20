@@ -79,11 +79,17 @@ function linkTodas() {
   return a;
 }
 
-function toast(msg) {
+function toast(msg, alerta = false) {
   const t = $("#toast");
   if (!t) return;
   t.textContent = msg;
   t.hidden = false;
+  // destaque vermelho que "pisca" de novo a cada clique
+  t.classList.remove("alerta");
+  if (alerta) {
+    void t.offsetWidth;
+    t.classList.add("alerta");
+  }
   clearTimeout(toast.timer);
   toast.timer = setTimeout(() => (t.hidden = true), 3500);
 }
@@ -820,9 +826,14 @@ async function entrar() {
 async function votar(cat, nom) {
   if (!votacaoAberta()) return;
   if (!session) {
-    toast("Entre com o Discord para votar.");
-    const b = $("#me button");
-    if (b) b.focus();
+    toast("Entre com o Discord para votar.", true);
+    // destaca o botão de login sem rolar a página
+    const b = $("#me button.discord");
+    if (b) {
+      b.classList.remove("chamando");
+      void b.offsetWidth;
+      b.classList.add("chamando");
+    }
     return;
   }
   if (ocupado) return;
