@@ -231,22 +231,50 @@ button.discord {
 .hero {
   position: relative;
   overflow: hidden;
+  aspect-ratio: 2 / 1;
+  max-height: 560px;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 32px clamp(20px, 4vw, 48px);
   border-radius: 14px;
   border: 1px solid var(--line);
-  background: radial-gradient(120% 90% at 85% 10%, #3a2a10 0%, transparent 55%),
-    radial-gradient(90% 80% at 10% 100%, #10233a 0%, transparent 60%),
-    var(--surface);
-  padding: 40px 28px;
+  background: var(--surface);
+}
+.hero-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: left center;
+}
+/* escurece só o lado direito, onde fica o título */
+.hero::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 50%,
+    #0b0d1280 80%,
+    #0b0d12b3 100%
+  );
 }
 .hero h1 {
+  position: relative;
+  z-index: 1;
+  max-width: 36%;
   font-family: var(--display);
   font-weight: 900;
-  font-size: clamp(40px, 7vw, 76px);
-  line-height: 0.95;
+  font-size: clamp(32px, 5.2vw, 62px);
+  line-height: 0.98;
   margin: 0;
-  text-wrap: balance;
+  text-shadow: 0 2px 24px #000c;
 }
 .hero h1 em {
+  display: block;
   font-style: normal;
   color: var(--gold);
 }
@@ -289,15 +317,6 @@ button.discord {
 .cat-card:hover {
   border-color: var(--gold);
   transform: translateY(-2px);
-}
-.cat-card .num {
-  font-family: var(--display);
-  font-weight: 900;
-  font-size: 28px;
-  color: var(--gold);
-  line-height: 1;
-  margin-bottom: 6px;
-  font-variant-numeric: tabular-nums;
 }
 .cat-card b {
   font-size: 17px;
@@ -555,6 +574,25 @@ button.discord {
 
 /* ---------- Celular ---------- */
 @media (max-width: 720px) {
+  .hero {
+    display: block;
+    aspect-ratio: auto;
+    max-height: none;
+    padding: 0;
+  }
+  .hero-img {
+    position: static;
+    display: block;
+    aspect-ratio: 16 / 9;
+  }
+  .hero::after {
+    display: none;
+  }
+  .hero h1 {
+    max-width: none;
+    padding: 18px 20px 22px;
+    font-size: clamp(32px, 9vw, 44px);
+  }
   .barra {
     grid-template-columns: 1fr auto;
     row-gap: 10px;

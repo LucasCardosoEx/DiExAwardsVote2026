@@ -47,6 +47,14 @@ function iniciais(texto) {
     .toUpperCase();
 }
 
+// Gradiente fixo para cada indicado sem imagem (sempre a mesma cor para o mesmo nome)
+function corPadrao(texto) {
+  let h = 0;
+  for (const ch of texto) h = (h * 31 + ch.codePointAt(0)) >>> 0;
+  const matiz = h % 360;
+  return `linear-gradient(160deg, hsl(${matiz} 35% 42%), hsl(${matiz} 45% 12%))`;
+}
+
 function el(tag, classe, texto) {
   const e = document.createElement(tag);
   if (classe) e.className = classe;
@@ -255,7 +263,9 @@ function viewHome() {
   const frag = document.createDocumentFragment();
 
   const hero = el("header", "hero");
-  hero.innerHTML = "<h1>The Game Awards<br><em>DiEx Edition</em></h1>";
+  hero.innerHTML =
+    '<img class="hero-img" src="img/hero.jpg" alt="">' +
+    "<h1>The Game Awards <em>DiEx Edition</em></h1>";
   frag.append(hero);
 
   const sec = el("section", "todas-cats");
@@ -270,9 +280,8 @@ function viewHome() {
 
   const grid = el("div", "lista-cats");
   const ids = Object.keys(perfis);
-  CATS.forEach((c, i) => {
+  CATS.forEach((c) => {
     const card = link(urlCategoria(c), "cat-card");
-    card.append(el("span", "num", String(i + 1).padStart(2, "0")));
     card.append(el("b", null, c.nome));
     if (c.en) card.append(el("span", "en", c.en));
 
@@ -317,9 +326,6 @@ function viewCategoria(rota) {
   const sec = el("section", "cat");
 
   const cab = el("header", "cat-cab");
-  cab.append(
-    el("span", "eyebrow", `Categoria ${rota.indice + 1} de ${CATS.length}`),
-  );
   cab.append(el("h1", "cat-titulo", c.nome));
   if (c.en) cab.append(el("span", "cat-en", c.en));
   if (c.desc) cab.append(el("p", "cat-desc", c.desc));
@@ -378,17 +384,15 @@ function cardIndicado(c, n, ids) {
   );
 
   const art = el("div", "art");
-  art.style.setProperty(
-    "--g",
-    n.cor || "linear-gradient(160deg,#3a4058,#141822)",
-  );
+  art.style.setProperty("--g", n.cor || corPadrao(n.titulo));
   const mono = el("span", "mono", iniciais(n.titulo));
   art.append(mono);
-  if (n.imagem) {
+  const imagem = n.imagem || `img/${n.id}.jpg`;
+  {
     const im = el("img", "capa");
     im.alt = "";
     im.loading = "lazy";
-    im.src = n.imagem;
+    im.src = imagem;
     im.onload = () => {
       art.classList.add("has-img");
       mono.hidden = true;
