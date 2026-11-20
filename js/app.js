@@ -1510,7 +1510,10 @@ function iniciarEasterEgg() {
 
 function soltarEasterEgg() {
   const reagendar = () => soltarEasterEgg.depois && soltarEasterEgg.depois();
-  if (document.hidden || document.querySelector(".parabens, .easter"))
+  if (
+    document.hidden ||
+    document.querySelector(".parabens, .easter, .easter-pop")
+  )
     return reagendar();
 
   const b = el("button", "easter");
@@ -1549,19 +1552,89 @@ function soltarEasterEgg() {
   b.onclick = () => {
     if (!ativo) return;
     ativo = false;
+    let som = null;
     try {
-      const a = new Audio("audio/valve.mp3");
-      a.volume = 0.7;
-      a.play().catch(() => {});
+      som = new Audio("audio/valve.mp3");
+      som.volume = 0.7;
+      som.play().catch(() => {});
     } catch {
       /* sem som */
     }
     b.classList.add("pego");
+    mostrarEasterPopup(som);
     setTimeout(() => {
       b.remove();
       reagendar();
     }, 900);
   };
+}
+
+// Imagens sorteadas no popup do easter egg
+const EASTER_IMAGENS = [
+  {
+    src: "img/easter-1.gif",
+    alt: "Gordon Freeman sendo atingido por uma seringa de esperança",
+  },
+  {
+    src: "img/easter-2.webp",
+    alt: "Coelho com relógio de bolso com o símbolo lambda",
+  },
+  { src: "img/easter-3.gif", alt: "Half Life 3 Confirmed" },
+  {
+    src: "img/easter-4.webp",
+    alt: "Montagem do Gordon Freeman com o logo do 3",
+  },
+  {
+    src: "img/easter-5.jpg",
+    alt: "Lupa mostrando três dedos: Half-Life 3 confirmado",
+  },
+];
+let ultimaEaster = -1;
+
+// Popup de quem achou o easter egg
+function mostrarEasterPopup(som) {
+  const fundo = el("div", "easter-pop");
+  const card = el("div", "easter-card");
+  card.setAttribute("role", "dialog");
+  card.setAttribute("aria-modal", "true");
+  card.setAttribute("aria-label", "Você achou o segredo");
+
+  const fechar = el("button", "easter-fechar");
+  fechar.type = "button";
+  fechar.setAttribute("aria-label", "Fechar");
+  fechar.innerHTML =
+    '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M18.3 5.7 12 12l6.3 6.3-1.4 1.4L10.6 13.4 4.3 19.7l-1.4-1.4L9.2 12 2.9 5.7l1.4-1.4 6.3 6.3 6.3-6.3z"/></svg>';
+
+  // sorteia, sem repetir a última
+  let i = Math.floor(Math.random() * EASTER_IMAGENS.length);
+  if (i === ultimaEaster) i = (i + 1) % EASTER_IMAGENS.length;
+  ultimaEaster = i;
+  const img = el("img");
+  img.src = EASTER_IMAGENS[i].src;
+  img.alt = EASTER_IMAGENS[i].alt;
+
+  card.append(
+    fechar,
+    img,
+    el("p", null, "Você achou o segredo. Half-Life 3 confirmado (algum dia)."),
+  );
+  fundo.append(card);
+  document.body.append(fundo);
+
+  const sair = () => {
+    fundo.remove();
+    document.removeEventListener("keydown", esc);
+    if (som) som.pause();
+  };
+  const esc = (e) => {
+    if (e.key === "Escape") sair();
+  };
+  fechar.onclick = sair;
+  fundo.addEventListener("click", (e) => {
+    if (e.target === fundo) sair();
+  });
+  document.addEventListener("keydown", esc);
+  fechar.focus();
 }
 
 // ---------------------------------------------------------------------
