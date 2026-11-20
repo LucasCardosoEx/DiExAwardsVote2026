@@ -247,11 +247,12 @@ function renderConta() {
 
   if (!sb) return;
 
+  const linkResultados = () =>
+    link(urlResultados(), "botao ghost painel-link", "Resultados");
+
   if (!session) {
-    if (!votacaoAberta()) {
-      box.append(el("span", "hint", "Votação encerrada"));
-      return;
-    }
+    box.append(linkResultados());
+    if (!votacaoAberta()) return;
     const b = el("button", "discord");
     b.type = "button";
     b.innerHTML = ICONE_DISCORD + "<span>Entrar com Discord</span>";
@@ -270,8 +271,7 @@ function renderConta() {
   sair.type = "button";
   sair.onclick = () => sb.auth.signOut();
   box.append(quem);
-  if (!votacaoAberta())
-    box.append(link(urlResultados(), "botao ghost painel-link", "Resultados"));
+  box.append(linkResultados());
   if (souAdmin)
     box.append(link(urlAdmin(), "botao ghost painel-link", "Painel"));
   box.append(sair);
