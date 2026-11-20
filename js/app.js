@@ -332,6 +332,7 @@ function viewCategoria(rota) {
   sec.append(cab);
 
   const grid = el("div", "grid");
+  grid.style.setProperty("--n", c.indicados.length);
   for (const n of c.indicados) {
     grid.append(cardIndicado(c, n, ids));
   }
@@ -387,17 +388,23 @@ function cardIndicado(c, n, ids) {
   art.style.setProperty("--g", n.cor || corPadrao(n.titulo));
   const mono = el("span", "mono", iniciais(n.titulo));
   art.append(mono);
-  const imagem = n.imagem || `img/${n.id}.jpg`;
+  // Tenta img/<id>.webp, depois .jpg e .png (ou o caminho do config, se tiver)
+  const tentativas = n.imagem
+    ? [n.imagem]
+    : ["webp", "jpg", "png"].map((ext) => `img/${n.id}.${ext}`);
   {
     const im = el("img", "capa");
     im.alt = "";
     im.loading = "lazy";
-    im.src = imagem;
+    im.src = tentativas.shift();
     im.onload = () => {
       art.classList.add("has-img");
       mono.hidden = true;
     };
-    im.onerror = () => im.remove();
+    im.onerror = () => {
+      if (tentativas.length) im.src = tentativas.shift();
+      else im.remove();
+    };
     art.prepend(im);
   }
 

@@ -21,10 +21,10 @@ window.DIEX_CONFIG = {
   //  Indicado:
   //  - id:     identificador do indicado. NÃO mude depois que começarem a votar.
   //            O mesmo jogo usa o mesmo id em todas as categorias.
-  //  - imagem: opcional. Se não tiver, o site procura "img/<id>.jpg"
-  //            (ex.: img/gta6.jpg). Uma imagem só serve para todas as
-  //            categorias em que o jogo aparece. Sem imagem, o card usa
-  //            cores e iniciais.
+  //  - imagem: opcional. Se não tiver, o site procura "img/<id>.webp"
+  //            (ex.: img/gta6.webp), depois .jpg e .png. Uma imagem só serve
+  //            para todas as categorias em que o jogo aparece. Sem imagem,
+  //            o card usa cores e iniciais.
   //  - cor:    opcional. Gradiente do card quando não há imagem.
   // ------------------------------------------------------------------
   categorias: [

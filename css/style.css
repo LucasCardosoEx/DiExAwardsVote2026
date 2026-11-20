@@ -391,10 +391,16 @@ button.discord {
 }
 
 /* Cards dos indicados */
+/* uma linha só com todos os indicados (5 ou 6), ocupando a largura toda */
 .grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  grid-template-columns: repeat(var(--n, 5), minmax(0, 1fr));
   gap: 14px;
+}
+@media (max-width: 960px) {
+  .grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
 }
 .nom {
   position: relative;
@@ -433,7 +439,7 @@ button.discord {
 }
 .nom .art {
   position: relative;
-  aspect-ratio: 3 / 4;
+  aspect-ratio: 1 / 1;
   display: flex;
   align-items: flex-end;
   padding: 10px;
