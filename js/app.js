@@ -352,6 +352,7 @@ function viewHome() {
   hero.innerHTML =
     '<img class="hero-img" src="img/hero.jpg" alt="">' +
     "<h1>The Game Awards <em>DiEx Edition</em></h1>";
+  hero.append(faixaEvento());
   frag.append(hero);
 
   const sec = el("section", "todas-cats");
@@ -426,6 +427,78 @@ function atualizarHome() {
         }),
       );
   }
+}
+
+// ---------------------------------------------------------------------
+//  Contador do evento + link (faixa de baixo do banner)
+// ---------------------------------------------------------------------
+let timerContador;
+function linkEvento(classe, texto) {
+  const ev = CFG.evento || {};
+  if (!ev.link) return null;
+  const a = el("a", classe);
+  a.href = ev.link;
+  a.target = "_blank";
+  a.rel = "noopener";
+  a.textContent = texto;
+  return a;
+}
+
+function faixaEvento() {
+  const ev = CFG.evento || {};
+  const box = el("div", "hero-evento");
+  const cont = el("div", "contador-ev");
+  cont.setAttribute("aria-live", "off");
+  box.append(cont);
+  if (ev.link) {
+    const a = el("a", "botao discord-link");
+    a.href = ev.link;
+    a.target = "_blank";
+    a.rel = "noopener";
+    a.innerHTML = ICONE_DISCORD + "<span>Link do evento</span>";
+    box.append(a);
+  }
+
+  const inicio = ev.inicio ? new Date(ev.inicio) : null;
+  const bloco = (n, rot) => {
+    const b = el("div", "ct-bloco");
+    b.append(el("b", null, String(n).padStart(2, "0")), el("small", null, rot));
+    return b;
+  };
+  const tick = () => {
+    if (!box.isConnected && cont.dataset.ok)
+      return clearInterval(timerContador);
+    cont.dataset.ok = "1";
+    cont.replaceChildren();
+    if (!inicio) return;
+    const falta = inicio.getTime() - Date.now();
+    if (falta <= 0) {
+      const fim = inicio.getTime() + 4 * 3600e3;
+      cont.append(
+        el(
+          "span",
+          "ct-ao-vivo",
+          Date.now() < fim ? "● Ao vivo agora" : "O evento já aconteceu",
+        ),
+      );
+      return;
+    }
+    const d = Math.floor(falta / 864e5);
+    const h = Math.floor((falta % 864e5) / 36e5);
+    const m = Math.floor((falta % 36e5) / 6e4);
+    const sgs = Math.floor((falta % 6e4) / 1e3);
+    cont.append(
+      el("span", "ct-rotulo", "Começa em"),
+      bloco(d, d === 1 ? "dia" : "dias"),
+      bloco(h, "h"),
+      bloco(m, "min"),
+      bloco(sgs, "s"),
+    );
+  };
+  clearInterval(timerContador);
+  tick();
+  timerContador = setInterval(tick, 1000);
+  return box;
 }
 
 // ---------------------------------------------------------------------
@@ -630,6 +703,11 @@ function configurarRodape() {
   if (gh && a.github) gh.href = a.github;
   const repo = $("#link-repo");
   if (repo && a.repositorio) repo.href = a.repositorio;
+  const evRod = $("#link-evento-rodape");
+  if (evRod && CFG.evento && CFG.evento.link) {
+    evRod.href = CFG.evento.link;
+    evRod.hidden = false;
+  }
   const tga = $("#link-tga");
   if (tga && CFG.evento && CFG.evento.site) tga.href = CFG.evento.site;
 
@@ -941,7 +1019,10 @@ function mostrarParabens() {
   const todas = link(urlHome(), "botao", "Ver minhas escolhas");
   const fechar = el("button", "ghost", "Fechar");
   fechar.type = "button";
-  acoes.append(todas, fechar);
+  const ev = linkEvento("botao discord-link", "Link do evento");
+  acoes.append(todas);
+  if (ev) acoes.append(ev);
+  acoes.append(fechar);
   card.append(trofeu, titulo, texto, acoes);
   fundo.append(card);
   document.body.append(fundo);
@@ -1664,9 +1745,7 @@ function mostrarEasterPopup(som) {
     if (e.key === "Escape") sair();
   };
   fechar.onclick = sair;
-  fundo.addEventListener("click", (e) => {
-    if (e.target === fundo) sair();
-  });
+  // clicar fora NÃO fecha (evita fechar sem querer de tanto clicar)
   document.addEventListener("keydown", esc);
   fechar.focus();
 }
@@ -1682,6 +1761,8 @@ function renderFaixa() {
   if (fechada && !f.childElementCount) {
     const t = el("span", null, "Votações encerradas");
     f.append(t, link(urlResultados(), null, "Ver resultado →"));
+    const ev = linkEvento(null, "Assista com a gente →");
+    if (ev) f.append(ev);
   }
 }
 

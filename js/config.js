@@ -20,6 +20,10 @@ window.DIEX_CONFIG = {
     nome: "The Game Awards 2026",
     data: "10 de dezembro de 2026",
     site: "https://thegameawards.com",
+    // Contador regressivo da página inicial (horário de Brasília)
+    inicio: "2026-12-10T21:30:00-03:00",
+    // Link do evento no Discord da comunidade
+    link: "https://discord.gg/3CuZ8WCjx?event=1573434513621651496",
   },
   autor: {
     nome: "ArthasEx",

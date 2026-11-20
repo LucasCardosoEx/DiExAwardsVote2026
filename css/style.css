@@ -121,6 +121,9 @@ button.discord {
   min-height: 48px;
 }
 .marca {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
   font-family: var(--display);
   font-weight: 900;
   font-size: 22px;
@@ -128,6 +131,7 @@ button.discord {
   letter-spacing: -0.01em;
 }
 .marca span {
+  margin-left: -0.25em;
   color: var(--gold);
 }
 .conta {
@@ -219,6 +223,13 @@ button.discord {
   font-size: 24px;
   letter-spacing: 0;
   font-variant-numeric: tabular-nums;
+}
+
+.marca-icone {
+  width: 36px;
+  height: 36px;
+  border-radius: 9px;
+  flex: none;
 }
 
 /* ---------- Avisos ---------- */
@@ -780,7 +791,7 @@ button.discord {
   animation: aparecer 0.25s ease-out;
 }
 .parabens-card {
-  width: min(420px, 100%);
+  width: min(540px, 100%);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -1365,7 +1376,7 @@ button.perigo {
 }
 .easter-card {
   position: relative;
-  width: min(480px, 100%);
+  width: min(540px, 100%);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -1570,6 +1581,90 @@ button.perigo {
 .res-espera {
   color: var(--muted);
   font-style: italic;
+}
+
+/* ---------- Contador + link do evento (banner) ---------- */
+.hero-evento {
+  position: absolute;
+  z-index: 1;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px 20px;
+  padding: 18px clamp(20px, 3vw, 36px);
+  background: linear-gradient(transparent, #0b0d12e6 55%);
+}
+.contador-ev {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.ct-rotulo {
+  margin-right: 4px;
+  color: var(--gold);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+.ct-bloco {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 58px;
+  padding: 6px 8px;
+  border-radius: 10px;
+  border: 1px solid #ffffff22;
+  background: #0b0d12b3;
+  backdrop-filter: blur(4px);
+}
+.ct-bloco b {
+  font-family: var(--display);
+  font-size: 26px;
+  line-height: 1.05;
+  font-variant-numeric: tabular-nums;
+}
+.ct-bloco small {
+  color: var(--muted);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+.ct-ao-vivo {
+  color: #ff6b6b;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.botao.discord-link {
+  background: var(--discord);
+  color: #fff;
+}
+@media (max-width: 720px) {
+  .hero-evento {
+    position: static;
+    padding: 0 20px 20px;
+    background: none;
+  }
+  .ct-bloco {
+    min-width: 0;
+    flex: 1;
+  }
+  .contador-ev {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+  .ct-rotulo {
+    width: 100%;
+  }
+  .botao.discord-link {
+    width: 100%;
+    justify-content: center;
+  }
 }
 
 /* ---------- Celular ---------- */
