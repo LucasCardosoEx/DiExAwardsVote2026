@@ -168,8 +168,7 @@ button.discord {
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
-.barra a,
-.barra .passo {
+.barra a {
   text-decoration: none;
   white-space: nowrap;
 }
@@ -180,13 +179,10 @@ button.discord {
 .barra .meio {
   display: flex;
   align-items: center;
-  gap: 24px;
+  justify-content: center;
 }
 .barra .todas {
   font-size: 15px;
-}
-.barra .off {
-  opacity: 0.4;
 }
 .barra .contador {
   justify-self: end;
@@ -519,6 +515,46 @@ button.discord {
   color: var(--muted);
 }
 
+/* Anterior / próxima (abaixo da barra) */
+.passos {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+.passo {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-width: 48%;
+  min-width: 0;
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  text-decoration: none;
+  transition: border-color 0.15s;
+}
+.passo:hover {
+  border-color: var(--gold);
+}
+.passo.prox {
+  text-align: right;
+  margin-left: auto;
+}
+.passo small {
+  color: var(--gold);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.passo span {
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 /* Bolinhas */
 .av {
   width: 30px;
@@ -558,18 +594,6 @@ button.discord {
   gap: 6px;
 }
 
-/* Navegação no fim da categoria */
-.rodape-nav {
-  display: flex;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 12px;
-  padding-top: 8px;
-}
-.rodape-nav .botao {
-  max-width: 100%;
-}
-
 .vazio {
   display: flex;
   flex-direction: column;
@@ -600,15 +624,8 @@ button.discord {
     font-size: clamp(32px, 9vw, 44px);
   }
   .barra {
-    grid-template-columns: 1fr auto;
-    row-gap: 10px;
     padding: 10px 14px;
-  }
-  .barra .meio {
-    grid-column: 1 / -1;
-    grid-row: 2;
-    justify-content: space-between;
-    gap: 12px;
+    gap: 8px;
   }
   .barra .todas {
     font-size: 13px;

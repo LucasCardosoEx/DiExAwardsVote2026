@@ -230,25 +230,14 @@ function renderBarra(rota) {
   barra.hidden = rota.tipo !== "categoria";
   if (barra.hidden) return;
 
-  const i = rota.indice;
-  const ant = CATS[i - 1];
-  const prox = CATS[i + 1];
-
-  const sair = link(urlHome(), "sair", "← Sair da votação");
+  const sair = link(urlHome(), "sair", "← Sair");
+  sair.append(el("span", "longo", " da votação"));
 
   const meio = el("div", "meio");
-  meio.append(
-    ant
-      ? link(urlCategoria(ant), "passo", "← Anterior")
-      : el("span", "passo off", "← Anterior"),
-    linkTodas(),
-    prox
-      ? link(urlCategoria(prox), "passo", "Próxima →")
-      : el("span", "passo off", "Próxima →"),
-  );
+  meio.append(linkTodas());
 
   const contador = el("div", "contador");
-  contador.append(el("span", null, "Seus votos"));
+  contador.append(el("span", "longo", "Seus votos"));
   const n = el("b");
   n.textContent = `${session ? totalVotados() : 0}/${CATS.length}`;
   contador.append(n);
@@ -325,6 +314,30 @@ function viewCategoria(rota) {
   const ids = Object.keys(perfis);
   const sec = el("section", "cat");
 
+  // Anterior / próxima: sempre no mesmo lugar, logo abaixo da barra
+  const ant = CATS[rota.indice - 1];
+  const prox = CATS[rota.indice + 1];
+  const passos = el("nav", "passos");
+  passos.setAttribute("aria-label", "Categoria anterior e próxima");
+  if (ant) {
+    const a = link(urlCategoria(ant), "passo ant");
+    a.append(el("small", null, "← Anterior"), el("span", null, ant.nome));
+    passos.append(a);
+  } else passos.append(el("span"));
+  if (prox) {
+    const a = link(urlCategoria(prox), "passo prox");
+    a.append(el("small", null, "Próxima →"), el("span", null, prox.nome));
+    passos.append(a);
+  } else {
+    const a = link(urlHome(), "passo prox");
+    a.append(
+      el("small", null, "Fim das categorias"),
+      el("span", null, "Ver todas →"),
+    );
+    passos.append(a);
+  }
+  sec.append(passos);
+
   const cab = el("header", "cat-cab");
   cab.append(el("h1", "cat-titulo", c.nome));
   if (c.en) cab.append(el("span", "cat-en", c.en));
@@ -356,18 +369,6 @@ function viewCategoria(rota) {
   falta.forEach((id) => lista.append(avatar(perfis[id])));
   pend.append(lista);
   sec.append(pend);
-
-  // Navegação no fim da página
-  const ant = CATS[rota.indice - 1];
-  const prox = CATS[rota.indice + 1];
-  const rodape = el("nav", "rodape-nav");
-  rodape.append(
-    ant ? link(urlCategoria(ant), "botao ghost", "← " + ant.nome) : el("span"),
-    prox
-      ? link(urlCategoria(prox), "botao", prox.nome + " →")
-      : link(urlHome(), "botao", "Ver todas as categorias"),
-  );
-  sec.append(rodape);
 
   return sec;
 }
