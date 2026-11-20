@@ -413,11 +413,18 @@ function atualizarHome() {
     if (session) {
       rod.append(
         nom
-          ? el("span", "pill ok", "Seu voto: " + nom.titulo)
+          ? Object.assign(el("span", "pill ok", "Seu voto: " + nom.titulo), {
+              title: nom.titulo,
+            })
           : el("span", "pill", "Falta votar"),
       );
     }
-    if (venc) rod.append(el("span", "pill verde", "Vencedor: " + venc.titulo));
+    if (venc)
+      rod.append(
+        Object.assign(el("span", "pill verde", "Vencedor: " + venc.titulo), {
+          title: venc.titulo,
+        }),
+      );
   }
 }
 

@@ -338,22 +338,38 @@ button.discord {
   border-color: var(--gold);
   transform: translateY(-2px);
 }
+/* Título sempre com espaço para 2 linhas: todos os cards ficam alinhados */
 .cat-card b {
   font-size: 17px;
+  line-height: 1.3;
+  min-height: 2.6em;
 }
 .cat-card .en {
+  order: -1;
+  margin-bottom: 2px;
   color: var(--muted);
   font-size: 12px;
   letter-spacing: 0.1em;
   text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
+/* Votos e etiquetas sempre no pé do card, uma por linha */
 .cat-card-rodape {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
+  flex-direction: column;
+  align-items: flex-start;
   gap: 8px;
-  margin-top: 12px;
+  margin-top: auto;
+  padding-top: 14px;
+  min-width: 0;
+}
+.cat-card-rodape .pill {
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .pill {
   font-size: 12px;
@@ -1557,6 +1573,12 @@ button.perigo {
 }
 
 /* ---------- Celular ---------- */
+@media (max-width: 600px) {
+  /* uma coluna só: não precisa reservar as 2 linhas */
+  .cat-card b {
+    min-height: 0;
+  }
+}
 @media (max-width: 720px) {
   .hero {
     display: block;
