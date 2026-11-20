@@ -31,7 +31,7 @@
       rel="stylesheet"
       href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:opsz,wght@6..96,700;6..96,900&family=Inter:wght@400;500;600;700&display=swap"
     />
-    <link rel="stylesheet" href="css/style.css?v=20261120c" />
+    <link rel="stylesheet" href="css/style.css?v=20261120d" />
   </head>
   <body>
     <div class="pagina">
@@ -42,12 +42,18 @@
         </div>
       </header>
 
-      <nav
-        class="barra"
-        id="barra"
-        aria-label="Navegação entre categorias"
-        hidden
-      ></nav>
+      <div class="fixos" id="fixos" hidden>
+        <nav
+          class="barra"
+          id="barra"
+          aria-label="Navegação entre categorias"
+        ></nav>
+        <nav
+          class="passos"
+          id="passos"
+          aria-label="Categoria anterior e próxima"
+        ></nav>
+      </div>
 
       <div class="notice" id="aviso" hidden></div>
 
@@ -160,7 +166,7 @@
     <div class="toast" id="toast" role="status" hidden></div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
-    <script src="js/config.js?v=20261120c"></script>
-    <script src="js/app.js?v=20261120c"></script>
+    <script src="js/config.js?v=20261120d"></script>
+    <script src="js/app.js?v=20261120d"></script>
   </body>
 </html>

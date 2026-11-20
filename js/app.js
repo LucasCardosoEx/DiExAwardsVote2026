@@ -247,10 +247,15 @@ function renderConta() {
 // ---------------------------------------------------------------------
 function renderBarra(rota) {
   const barra = $("#barra");
+  const fixos = $("#fixos");
   if (!barra) return;
   barra.replaceChildren();
-  barra.hidden = rota.tipo !== "categoria";
-  if (barra.hidden) return;
+  const passosBox = $("#passos");
+  if (passosBox) passosBox.replaceChildren();
+  const visivel = rota.tipo === "categoria";
+  if (fixos) fixos.hidden = !visivel;
+  else barra.hidden = !visivel;
+  if (!visivel) return;
 
   const sair = link(urlHome(), "sair", "← Sair");
   sair.append(el("span", "longo", " da votação"));
@@ -265,6 +270,29 @@ function renderBarra(rota) {
   contador.append(n);
 
   barra.append(sair, meio, contador);
+
+  // Anterior / próxima: logo abaixo da barra, presos no topo ao rolar
+  if (passosBox) {
+    const ant = CATS[rota.indice - 1];
+    const prox = CATS[rota.indice + 1];
+    if (ant) {
+      const a = link(urlCategoria(ant), "passo ant");
+      a.append(el("small", null, "← Anterior"), el("span", null, ant.nome));
+      passosBox.append(a);
+    } else passosBox.append(el("span"));
+    if (prox) {
+      const a = link(urlCategoria(prox), "passo prox");
+      a.append(el("small", null, "Próxima →"), el("span", null, prox.nome));
+      passosBox.append(a);
+    } else {
+      const a = link(urlHome(), "passo prox");
+      a.append(
+        el("small", null, "Fim das categorias"),
+        el("span", null, "Ver todas →"),
+      );
+      passosBox.append(a);
+    }
+  }
 }
 
 // ---------------------------------------------------------------------
@@ -335,30 +363,6 @@ function viewCategoria(rota) {
   const c = rota.cat;
   const ids = Object.keys(perfis);
   const sec = el("section", "cat");
-
-  // Anterior / próxima: sempre no mesmo lugar, logo abaixo da barra
-  const ant = CATS[rota.indice - 1];
-  const prox = CATS[rota.indice + 1];
-  const passos = el("nav", "passos");
-  passos.setAttribute("aria-label", "Categoria anterior e próxima");
-  if (ant) {
-    const a = link(urlCategoria(ant), "passo ant");
-    a.append(el("small", null, "← Anterior"), el("span", null, ant.nome));
-    passos.append(a);
-  } else passos.append(el("span"));
-  if (prox) {
-    const a = link(urlCategoria(prox), "passo prox");
-    a.append(el("small", null, "Próxima →"), el("span", null, prox.nome));
-    passos.append(a);
-  } else {
-    const a = link(urlHome(), "passo prox");
-    a.append(
-      el("small", null, "Fim das categorias"),
-      el("span", null, "Ver todas →"),
-    );
-    passos.append(a);
-  }
-  sec.append(passos);
 
   const cab = el("header", "cat-cab");
   cab.append(el("h1", "cat-titulo", c.nome));
